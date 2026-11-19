@@ -2,6 +2,7 @@ import React, {useId, useState} from 'react';
 import {BookingCalendar} from './BookingCalendar';
 import {detailsFor} from './roomDetails';
 import {count, dateLabel, Feedback, Icon, image, Modal, money, stayLength} from './ui';
+import {RoomRating} from './Reviews';
 
 const roomType = room => detailsFor(room)[0];
 
@@ -54,6 +55,7 @@ function RoomCard({room, searched, selectRoom, saveRoom, pending}) {
         <span><Icon name="guests" size={17}/> До {count(room.capacity, 'гостя', 'гостей', 'гостей')}</span>
       </div>
       <h3>{title}</h3>
+      <RoomRating room={room}/>
       {description && <p className="room-description">{description}</p>}
       <div className="room-rate">
         <p className="price">{money(room.price_per_night, room.currency)} <small>/ ночь</small></p>
@@ -212,4 +214,3 @@ export function BookingDialog({draft, user, pending, error, close, confirm}) {
     </button>
   </Modal>;
 }
-
