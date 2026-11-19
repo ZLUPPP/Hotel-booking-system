@@ -315,7 +315,7 @@ function App() {
       onChanged={() => {setSearchResult(null); loadCatalog(0).catch(err => setCatalogError(err.message));}}/>}
     {user && !['home', 'auth', 'admin'].includes(authorizedView) && <Dashboard key={authorizedView} view={authorizedView} user={user}
       updateUser={updated => setUser(current => current?.id === updated.id ? updated : current)}
-      created={created} goHome={goHome} attempts={attempts}/>}
+      created={created} goHome={goHome} onBookings={() => navigate('bookings')} onLogout={logout} attempts={attempts}/>}
     <footer className="site-footer">
       <div className="container footer-inner">
         <div className="footer-brand"><Brand onClick={goHome}/><span><Icon name="pin" size={17}/> Алматы, Казахстан</span></div>
