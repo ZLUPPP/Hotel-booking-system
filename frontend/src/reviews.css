@@ -1,0 +1,53 @@
+.stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+.star { fill: none; stroke: #9a8f72; stroke-width: 1.4; stroke-linejoin: round; }
+.star.is-filled { fill: #d69a21; stroke: #b2760f; }
+
+.room-content .rating-line { display: inline-flex; align-items: center; gap: 7px; font-size: .85rem; color: var(--muted); }
+.room-content .rating-none { font-size: .82rem; }
+.room-content button.rating-link { align-self: flex-start; min-height: 32px; padding: 2px 8px 2px 0; border-color: transparent; background: transparent; color: var(--ink); font-weight: 600; }
+.room-content button.rating-link strong { color: var(--ink); font-weight: 800; }
+.room-content button.rating-link span { color: var(--muted); font-weight: 600; }
+.room-content button.rating-link:not(:disabled):hover { background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+
+.reviews-summary { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 12px 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.reviews-summary strong { font: 500 2.1rem/1 var(--heading); color: var(--wine); }
+.reviews-summary > div { display: grid; gap: 3px; }
+.reviews-summary small { color: var(--muted); font-size: .8rem; }
+.reviews-empty { margin-top: 16px; color: var(--muted); font-size: .92rem; }
+.review-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.review-list li { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.review-list li p, .my-review p, .booking-review p { font-size: .92rem; overflow-wrap: anywhere; white-space: pre-line; }
+.review-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: .86rem; }
+.review-head strong { overflow-wrap: anywhere; }
+.review-head time { color: var(--muted); font-size: .8rem; }
+.dialog-confirm.review-more, .review-more { width: 100%; margin-top: 6px; }
+
+.review-form { display: grid; gap: 18px; margin-top: 16px; }
+.review-form .rating-input { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.review-form .rating-input legend { padding: 0; margin-bottom: 8px; font-size: .875rem; font-weight: 800; }
+.rating-input .rating-input-stars { display: flex; gap: 2px; margin-left: -4px; }
+.rating-input .rating-input-stars label { position: relative; display: inline-flex; padding: 4px; border-radius: 8px; cursor: pointer; }
+.rating-input .rating-input-stars label:has(input:focus-visible) { outline: 2px solid #9c6438; outline-offset: 2px; }
+.rating-input .rating-input-stars input { position: absolute; inset: 0; width: 100%; min-height: 0; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.rating-input .rating-input-stars .star { transition: transform 120ms ease-out; }
+.review-form .rating-hint { min-height: 1.3em; color: var(--muted); font-size: .86rem; font-weight: 700; }
+.review-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.review-form .review-comment small { color: var(--muted); font-weight: 500; }
+.review-form .review-comment textarea { width: 100%; min-height: 112px; padding: 10px 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--control); border-radius: 6px; font: inherit; line-height: 1.45; resize: vertical; }
+.review-form .review-comment textarea::placeholder { color: var(--muted); opacity: 1; }
+.review-form .review-counter { justify-self: end; color: var(--muted); font-size: .76rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.review-form .alert { margin: 0; }
+@media (hover: hover) {
+  .rating-input .rating-input-stars label:hover .star { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rating-input .rating-input-stars .star { transition: none; }
+  .rating-input .rating-input-stars label:hover .star { transform: none; }
+}
+
+.booking-card .booking-review { display: grid; gap: 6px; margin-top: 12px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.booking-review > span { color: var(--muted); font-size: .78rem; font-weight: 700; }
+
+.my-review-list { display: grid; gap: 10px; width: 100%; }
+.my-review { display: grid; justify-items: start; gap: 7px; padding: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 9px; }
+.my-review .review-head { width: 100%; }
