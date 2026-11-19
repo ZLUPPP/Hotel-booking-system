@@ -146,8 +146,9 @@ body:has(dialog[open]) { overflow: hidden; }
 @media (hover: hover) {
   button:not(:disabled):hover, .secondary:hover { background: #e9ede2; border-color: var(--wine); }
   .primary:not(:disabled):hover { background: var(--wine-hover); border-color: var(--wine-hover); }
-  .nav-button:hover, .text-button:not(:disabled):hover { border-color: transparent; }
-  .header-inner nav a:hover, .back-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .header-inner nav .nav-button:not(:disabled):hover { background: transparent; border-color: transparent; }
+  .text-button:not(:disabled):hover { border-color: transparent; }
+  .header-inner nav a:hover, .header-inner nav .nav-button:not(:disabled):hover, .back-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .primary { transition-property: scale, background-color, border-color, color; }

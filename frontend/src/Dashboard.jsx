@@ -1,3 +1,4 @@
+import {Select} from './Select';
 import React, {useEffect, useState} from 'react';
 import {api} from './api';
 import {Pagination} from './Home';
@@ -16,15 +17,15 @@ function UserEditor({user, busy, save}) {
     save({role: data.get('role'), is_active: data.has('active')});
   }}>
     <div><h2>{user.full_name}</h2><p>{user.email}</p></div>
-    <label>Роль<select name="role" defaultValue={user.role}>
+    <label>Роль<Select name="role" defaultValue={user.role}>
       {Object.entries(roles).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
-    </select></label>
+    </Select></label>
     <label className="check"><input type="checkbox" name="active" defaultChecked={user.is_active}/>Активен</label>
     <button disabled={busy}>Сохранить</button>
   </form>;
 }
 
-export function Dashboard({view, user, updateUser, created, goHome, attempts}) {
+export function Dashboard({view, user, updateUser, created, goHome, attempts, embedded = false}) {
   const [page, setPage] = useState(emptyPage);
   const [busy, setBusy] = useState(view !== 'profile');
   const [error, setError] = useState('');
@@ -82,7 +83,8 @@ export function Dashboard({view, user, updateUser, created, goHome, attempts}) {
     });
   }
 
-  return <main id="main" className="container dashboard">
+  const Container = embedded ? 'section' : 'main';
+  return <Container id={embedded ? undefined : "main"} className="container dashboard">
     <h1>{titles[view]}</h1>
     <Feedback error={error} notice={notice}/>
     {view === 'profile' ? <form className="panel account-form profile-form" onSubmit={event => {
@@ -133,5 +135,5 @@ export function Dashboard({view, user, updateUser, created, goHome, attempts}) {
       </div>}
       <Pagination page={page} pending={busy} onPage={offset => run(() => load(offset))}/>
     </div>}
-  </main>;
+  </Container>;
 }

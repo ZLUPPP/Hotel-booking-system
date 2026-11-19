@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {api, hasToken, setToken} from './api';
 import {Account} from './Account';
+import {Admin} from './Admin';
 import {Dashboard, emptyPage, pageSize} from './Dashboard';
 import {BookingDialog, Home} from './Home';
 import {roomSearchParams, stayQuery} from './roomSearch';
@@ -10,7 +11,7 @@ import './style.css';
 import './hotel.css';
 import './interactions.css';
 
-function AccountMenu({user, pending, onProfile, onLogout}) {
+function AccountMenu({user, pending, onProfile, onAdmin, onLogout}) {
   const menu = useRef(null);
   useEffect(() => {
     const dismiss = event => {
@@ -34,6 +35,7 @@ function AccountMenu({user, pending, onProfile, onLogout}) {
     }}>
     <summary className="header-account"><Icon name="guests" size={18}/><span>{user.full_name}</span><Icon name="down" size={15}/></summary>
     <div className="account-menu-panel">
+      {user.role === 'admin' && <button disabled={pending} onClick={() => {close(); onAdmin();}}><Icon name="sliders" size={16}/>Управление отелем</button>}
       <button disabled={pending} onClick={() => {close(); onProfile();}}>Профиль</button>
       <button disabled={pending} onClick={() => {close(); onLogout();}}>Выйти</button>
     </div>
@@ -60,7 +62,7 @@ function App() {
   const destination = useRef('top');
   const previousView = useRef(view);
   const isAdmin = user?.role === 'admin';
-  const authorizedView = view === 'users' && !isAdmin ? 'profile' : view;
+  const authorizedView = ['users', 'admin'].includes(view) && !isAdmin ? 'profile' : view;
 
   async function run(work) {
     if (operation.current) return;
@@ -146,7 +148,7 @@ function App() {
   }, []);
 
   async function loadCatalog(offset = 0, signal) {
-    const result = await api(`/rooms?limit=${pageSize}&offset=${offset}${isAdmin ? '&include_inactive=true' : ''}`, {signal});
+    const result = await api(`/rooms?limit=${pageSize}&offset=${offset}`, {signal});
     if (!signal?.aborted) setCatalog(result);
   }
 
@@ -272,14 +274,6 @@ function App() {
     goHome();
   }
 
-  async function saveRoom(id, body) {
-    run(async () => {
-      await api(id ? `/rooms/${id}` : '/rooms', {method: id ? 'PATCH' : 'POST', body});
-      await loadCatalog(id ? catalog.offset : 0);
-      setSearchResult(null);
-    });
-  }
-
   const page = searchResult?.page || catalog;
 
   return <>
@@ -295,11 +289,10 @@ function App() {
             <button className="nav-button" disabled={pending} aria-current={view === 'bookings' ? 'page' : undefined} onClick={() => navigate('bookings')}>
               {user.role === 'guest' ? 'Мои брони' : 'Все брони'}
             </button>
-            {isAdmin && <button className="nav-button" disabled={pending} aria-current={view === 'users' ? 'page' : undefined} onClick={() => navigate('users')}>Пользователи</button>}
           </>}
         </nav>
         <div className="header-actions">
-          {user ? <AccountMenu user={user} pending={pending} onProfile={() => navigate('profile')} onLogout={logout}/> :
+          {user ? <AccountMenu user={user} pending={pending} onProfile={() => navigate('profile')} onAdmin={() => navigate('admin')} onLogout={logout}/> :
             <button className="header-account" disabled={pending || restoringSession} onClick={openAuth}>
               <Icon name="guests" size={18}/>{restoringSession ? 'Аккаунт' : 'Войти'}
             </button>}
@@ -311,14 +304,16 @@ function App() {
       searched={searchResult?.query} loading={catalogLoading && !searchResult} pending={pending} selectRoom={selectRoom}
       error={draft ? '' : error} catalogError={!searchResult && catalogError}
       preferredRoom={preferredRoom} clearRoom={clearRoom} searchAll={searchAll}
-      saveRoom={isAdmin ? saveRoom : null} retry={() => run(async () => {
+      retry={() => run(async () => {
         await loadCatalog();
         setCatalogError('');
       })}
       onPage={offset => run(() => searchResult ? find(searchResult.query, offset) : loadCatalog(offset))}/>}
     {view === 'auth' && <Account mode={mode} draft={draft} pending={pending} error={error}
       returnHome={goHome} onSubmit={submitAccount} switchMode={next => {setMode(next); setError('');}}/>}
-    {user && !['home', 'auth'].includes(view) && <Dashboard key={authorizedView} view={authorizedView} user={user}
+    {user && authorizedView === 'admin' && <Admin user={user} updateUser={setUser} goHome={goHome} attempts={attempts}
+      onChanged={() => {setSearchResult(null); loadCatalog(0).catch(err => setCatalogError(err.message));}}/>}
+    {user && !['home', 'auth', 'admin'].includes(authorizedView) && <Dashboard key={authorizedView} view={authorizedView} user={user}
       updateUser={updated => setUser(current => current?.id === updated.id ? updated : current)}
       created={created} goHome={goHome} attempts={attempts}/>}
     <footer className="site-footer">

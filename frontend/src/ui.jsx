@@ -1,6 +1,8 @@
 import React, {useEffect, useRef} from 'react';
 
 const icons = {
+  search: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></>,
+  edit: <><path d="m14 5 5 5M4 20l5-1L20 8a2.8 2.8 0 0 0-4-4L5 15l-1 5Z"/></>,
   arrow: <><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></>,
   down: <path d="m6 9 6 6 6-6"/>,
   left: <path d="m15 6-6 6 6 6"/>,
