@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {detailsFor} from './roomDetails';
-import {count, dateLabel, Icon, image, money, stayLength} from './ui';
+import {count, dateLabel, Icon, image, money, stayLength, today} from './ui';
+import {Stars} from './Reviews';
 import './booking-card.css';
 
 const bookingStatus = {pending: 'Ожидает оплаты', confirmed: 'Подтверждена', cancelled: 'Отменена'};
@@ -63,9 +64,10 @@ function StayCalendar({start, end}) {
   </section>;
 }
 
-export function BookingCard({booking: b, user, busy, onCancel, onPay, onHistory, history}) {
+export function BookingCard({booking: b, user, busy, onCancel, onPay, onHistory, history, review, onReview}) {
   const [title, photo, description] = detailsFor({room_type: b.room_type});
   const nights = count(stayLength(b.check_in, b.check_out), 'ночь', 'ночи', 'ночей');
+  const canReview = Boolean(onReview) && b.guest_id === user.id && b.status === 'confirmed' && b.check_out <= today();
 
   return <article className="booking-card">
     <div className="booking-card-body">
@@ -97,8 +99,10 @@ export function BookingCard({booking: b, user, busy, onCancel, onPay, onHistory,
     </div>
     <div className="booking-actions">
       <button disabled={busy} aria-expanded={Boolean(history)} onClick={onHistory}>{history ? 'Скрыть платежи' : 'История платежей'}</button>
+      {canReview && <button disabled={busy} onClick={onReview}>{review ? 'Изменить отзыв' : 'Оставить отзыв'}</button>}
       {b.status !== 'cancelled' && <button disabled={busy} onClick={onCancel}>Отменить бронь</button>}
     </div>
+    {review && <div className="booking-review"><span>Ваш отзыв</span><Stars value={review.rating} size={16}/>{review.comment && <p>{review.comment}</p>}</div>}
     {b.status === 'pending' && b.guest_id === user.id && <div className="simulation">
       <small>Учебная оплата. Деньги не списываются.</small>
       <button className="primary" disabled={busy} onClick={() => onPay('succeeded')}>Оплатить успешно</button>
