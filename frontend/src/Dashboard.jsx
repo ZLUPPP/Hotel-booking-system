@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {api} from './api';
 import {Pagination} from './Home';
 import {BookingCard} from './BookingCard';
+import {MyReviews, ReviewFormModal} from './Reviews';
 import {Feedback, Icon, money} from './ui';
 
 export const pageSize = 12;
@@ -48,6 +49,8 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
   const [notice, setNotice] = useState(created ? 'Бронь создана. Её можно оплатить в личном кабинете.' : '');
   const [history, setHistory] = useState({});
   const [cancelId, setCancelId] = useState(null);
+  const [reviews, setReviews] = useState({});
+  const [reviewTarget, setReviewTarget] = useState(null);
   const titles = {bookings: user.role === 'guest' ? 'Мои бронирования' : 'Все бронирования', users: 'Пользователи', profile: 'Мой профиль'};
 
   useEffect(() => {
@@ -55,6 +58,15 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
     api('/rooms?limit=100&offset=0').then(result => setProfileRooms(result.items)).catch(err => setError(err.message))
       .finally(() => setProfileRoomsLoaded(true));
   }, [view, profilePanel, profileRoomsLoaded]);
+
+  useEffect(() => {
+    if (view !== 'bookings') return;
+    let active = true;
+    api('/reviews/mine').then(list => {
+      if (active) setReviews(Object.fromEntries(list.map(item => [item.booking_id, item])));
+    }).catch(() => {});
+    return () => {active = false;};
+  }, [view]);
 
   function updateFavorites(next) {
     setFavoriteIds(next);
@@ -87,9 +99,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
             <Icon name="heart" size={18}/>{favorite ? 'В избранном' : 'Сохранить'}
           </button></div>;
       })}</div>}</>;
-    if (key === 'reviews') return <><p>После проживания здесь будут собраны ваши отзывы об отеле.</p>
-      <div className="profile-empty-state"><Icon name="chat" size={25}/><strong>Пока нет опубликованных отзывов</strong><span>Здесь появятся отзывы, которыми вы поделитесь после поездки.</span></div>
-      <button type="button" className="secondary" onClick={onBookings}>Перейти к поездкам <Icon name="arrow" size={17}/></button></>;
+    if (key === 'reviews') return <MyReviews onBookings={onBookings}/>;
     if (key === 'personal') return <><p>Контактная информация для ваших бронирований.</p>
       <form id="profile-details" className="account-form profile-form" onSubmit={event => {
         event.preventDefault();
@@ -254,6 +264,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
       {busy && page.items.length === 0 && <p role="status">Загрузка…</p>}
       {view === 'bookings' && page.items.map(booking => <div key={booking.id}>
         <BookingCard booking={booking} user={user} busy={busy} history={history[booking.id]}
+          review={reviews[booking.id]} onReview={() => setReviewTarget(booking)}
           onCancel={() => setCancelId(booking.id)} onPay={outcome => pay(booking, outcome)} onHistory={() => {
             if (history[booking.id]) {
               hideHistory(booking.id);
@@ -287,5 +298,12 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
       </div>}
       <Pagination page={page} pending={busy} onPage={offset => run(() => load(offset))}/>
     </div></>}
+    {reviewTarget && <ReviewFormModal bookingId={reviewTarget.id} roomType={reviewTarget.room_type}
+      roomNumber={reviewTarget.room_number} review={reviews[reviewTarget.id]} onClose={() => setReviewTarget(null)}
+      onSaved={saved => {
+        setReviews(current => ({...current, [saved.booking_id]: saved}));
+        setReviewTarget(null);
+        setNotice('Спасибо! Ваш отзыв сохранён.');
+      }}/>}
   </Container>;
 }
