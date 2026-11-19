@@ -176,3 +176,46 @@ class Page(BaseModel, Generic[T]):
     total: int
     limit: int
     offset: int
+
+
+class ReviewCreate(Input):
+    rating: int = Field(strict=True, ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=1000)
+
+    @field_validator('comment')
+    @classmethod
+    def blank_comment(cls, value):
+        return value or None
+
+
+class Review(BaseModel):
+    id: UUID
+    booking_id: UUID
+    room_id: UUID
+    rating: int
+    comment: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MyReview(Review):
+    room_number: str
+    room_type: str
+
+
+class PublicReview(BaseModel):
+    id: UUID
+    rating: int
+    comment: str | None = None
+    author: str
+    created_at: datetime
+
+
+class RoomRating(BaseModel):
+    room_id: UUID
+    average: float
+    count: int
+
+
+class RoomReviews(Page[PublicReview]):
+    average: float | None = None
