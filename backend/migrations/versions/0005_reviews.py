@@ -1,52 +1,38 @@
-import sqlalchemy
+"""Room reviews: one rating and optional comment per completed booking."""
+import sqlalchemy as sa
+from alembic import op
 
-from backend.core import db
+revision = '0005_reviews'
+down_revision = '0004_merge_booking_and_refresh'
+branch_labels = None
+depends_on = None
 
 
-Reviews = sqlalchemy.Table(
-    'reviews',
-    db.metadata,
-    sqlalchemy.Column(
-        'id',
-        sqlalchemy.Uuid(),
-        primary_key=True,
-        server_default=sqlalchemy.text("gen_random_uuid()"),
-        nullable=False,
-    ),
-    sqlalchemy.Column(
-        'booking_id',
-        sqlalchemy.Uuid(),
-        sqlalchemy.ForeignKey('bookings.id', ondelete='CASCADE'),
-        nullable=False,
-    ),
-    sqlalchemy.Column(
-        'room_id',
-        sqlalchemy.Uuid(),
-        sqlalchemy.ForeignKey('rooms.id', ondelete='CASCADE'),
-        nullable=False,
-    ),
-    sqlalchemy.Column(
-        'guest_id',
-        sqlalchemy.Uuid(),
-        sqlalchemy.ForeignKey('guests.id', ondelete='CASCADE'),
-        nullable=False,
-    ),
-    sqlalchemy.Column('rating', sqlalchemy.SmallInteger(), nullable=False),
-    sqlalchemy.Column('comment', sqlalchemy.String(length=1000), nullable=True),
-    sqlalchemy.Column(
-        'created_at',
-        sqlalchemy.DateTime(timezone=True),
-        server_default=sqlalchemy.func.now(),
-        nullable=False,
-    ),
-    sqlalchemy.Column(
-        'updated_at',
-        sqlalchemy.DateTime(timezone=True),
-        server_default=sqlalchemy.func.now(),
-        nullable=False,
-    ),
-    sqlalchemy.CheckConstraint('rating BETWEEN 1 AND 5', name='ck_review_rating'),
-    sqlalchemy.UniqueConstraint('booking_id', name='uq_review_booking'),
-    sqlalchemy.Index('ix_reviews_room_created', 'room_id', 'created_at'),
-    sqlalchemy.Index('ix_reviews_guest', 'guest_id'),
-)
+def upgrade():
+    op.create_table(
+        'reviews',
+        sa.Column('id', sa.Uuid(), primary_key=True,
+                  server_default=sa.text('gen_random_uuid()'), nullable=False),
+        sa.Column('booking_id', sa.Uuid(),
+                  sa.ForeignKey('bookings.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('room_id', sa.Uuid(),
+                  sa.ForeignKey('rooms.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('guest_id', sa.Uuid(),
+                  sa.ForeignKey('guests.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('rating', sa.SmallInteger(), nullable=False),
+        sa.Column('comment', sa.String(length=1000), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True),
+                  server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True),
+                  server_default=sa.func.now(), nullable=False),
+        sa.CheckConstraint('rating BETWEEN 1 AND 5', name='ck_review_rating'),
+        sa.UniqueConstraint('booking_id', name='uq_review_booking'),
+    )
+    op.create_index('ix_reviews_room_created', 'reviews', ['room_id', 'created_at'])
+    op.create_index('ix_reviews_guest', 'reviews', ['guest_id'])
+
+
+def downgrade():
+    op.drop_index('ix_reviews_guest', table_name='reviews')
+    op.drop_index('ix_reviews_room_created', table_name='reviews')
+    op.drop_table('reviews')
