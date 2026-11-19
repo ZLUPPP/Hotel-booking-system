@@ -38,7 +38,7 @@ app.middleware("http")(request_logging)
 register_error_handlers(app)
 app.include_router(health_router)
 
-from backend.routers import auth, users, rooms, bookings, payments
+from backend.routers import auth, users, rooms, bookings, payments, reviews
 
-for module in (auth, users, rooms, bookings, payments):
+for module in (auth, users, rooms, bookings, payments, reviews):
     app.include_router(module.router, prefix="/api/v1")
