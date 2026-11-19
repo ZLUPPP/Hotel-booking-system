@@ -28,6 +28,7 @@ function errorMessage(path, status, code) {
   }
   if (code === 'room_number_taken') return 'Комната с таким номером уже существует.';
   if (code === 'self_change_forbidden') return 'Нельзя изменить свою роль или отключить собственный аккаунт.';
+  if (code === 'review_not_allowed') return 'Отзыв можно оставить только после завершённого проживания по подтверждённой брони.';
   if (code === 'room_unavailable') return 'Этот номер уже занят на выбранные даты. Закройте окно и обновите поиск.';
   return {
     401: 'Сессия закончилась. Войдите снова.',
