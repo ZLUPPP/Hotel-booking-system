@@ -104,9 +104,10 @@ export function BookingCard({booking: b, user, busy, onCancel, onPay, onHistory,
     </div>
     {review && <div className="booking-review"><span>Ваш отзыв</span><Stars value={review.rating} size={16}/>{review.comment && <p>{review.comment}</p>}</div>}
     {b.status === 'pending' && b.guest_id === user.id && <div className="simulation">
-      <small>Учебная оплата. Деньги не списываются.</small>
-      <button className="primary" disabled={busy} onClick={() => onPay('succeeded')}>Оплатить успешно</button>
-      <button disabled={busy} onClick={() => onPay('failed')}>Симулировать отказ</button>
+      <small>Бронирование ожидает оплаты.</small>
+      <button className="primary" disabled={busy} onClick={() => onPay()}>
+        💳 Перейти к оплате
+      </button>
     </div>}
     {history && <div className="history">{history.length ? history.map(p => <p key={p.id}>
       {paymentStatus[p.status] || p.status} · {money(p.amount, p.currency)} · {new Date(p.created_at).toLocaleString('ru')}

@@ -58,7 +58,7 @@ export function Feedback({error, notice}) {
     {notice && <p className="notice" role="status"><Icon name="check" size={17}/>{notice}</p>}</>;
 }
 
-export function Modal({title, onClose, children}) {
+export function Modal({title, onClose, className = '', children}) {
   const dialog = useRef(null);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export function Modal({title, onClose, children}) {
     return () => element.close();
   }, []);
 
-  return <dialog ref={dialog} aria-labelledby="dialog-title" onCancel={event => {
+  return <dialog ref={dialog} className={className} aria-labelledby="dialog-title" onCancel={event => {
     event.preventDefault();
     onClose();
   }}>

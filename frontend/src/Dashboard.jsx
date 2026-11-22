@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {api} from './api';
 import {Pagination} from './Home';
 import {BookingCard} from './BookingCard';
+import {PaymentModal} from './PaymentModal';
 import {MyReviews, ReviewFormModal} from './Reviews';
 import {Feedback, Icon, money} from './ui';
 
@@ -51,6 +52,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
   const [cancelId, setCancelId] = useState(null);
   const [reviews, setReviews] = useState({});
   const [reviewTarget, setReviewTarget] = useState(null);
+  const [payingBooking, setPayingBooking] = useState(null);
   const titles = {bookings: user.role === 'guest' ? 'Мои бронирования' : 'Все бронирования', users: 'Пользователи', profile: 'Мой профиль'};
 
   useEffect(() => {
@@ -206,16 +208,19 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
     });
   }
 
-  function pay(booking, outcome) {
-    run(async () => {
-      const attempt = attempts.current[booking.id] || {key: crypto.randomUUID(), outcome};
-      attempts.current[booking.id] = attempt;
-      const result = await api(`/bookings/${booking.id}/payments`, {method: 'POST', body: {outcome: attempt.outcome}, key: attempt.key});
-      delete attempts.current[booking.id];
-      hideHistory(booking.id);
-      setNotice(result.payment.status === 'failed' ? 'Учебный платёж отклонён. Можно повторить оплату.' : 'Учебная оплата прошла. Бронь подтверждена.');
+  async function pay(booking, outcome) {
+    const attempt = attempts.current[booking.id] || {key: crypto.randomUUID(), outcome};
+    attempts.current[booking.id] = attempt;
+    const result = await api(`/bookings/${booking.id}/payments`, {method: 'POST', body: {outcome: attempt.outcome}, key: attempt.key});
+    delete attempts.current[booking.id];
+    hideHistory(booking.id);
+    if (result.payment.status === 'succeeded') {
+      setNotice('Оплата прошла успешно! Бронь подтверждена.');
       await load(page.offset);
-    });
+    } else {
+      await load(page.offset);
+    }
+    return result;
   }
 
   const Container = embedded ? 'section' : 'main';
@@ -265,7 +270,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
       {view === 'bookings' && page.items.map(booking => <div key={booking.id}>
         <BookingCard booking={booking} user={user} busy={busy} history={history[booking.id]}
           review={reviews[booking.id]} onReview={() => setReviewTarget(booking)}
-          onCancel={() => setCancelId(booking.id)} onPay={outcome => pay(booking, outcome)} onHistory={() => {
+          onCancel={() => setCancelId(booking.id)} onPay={() => setPayingBooking(booking)} onHistory={() => {
             if (history[booking.id]) {
               hideHistory(booking.id);
               return;
@@ -305,5 +310,13 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
         setReviewTarget(null);
         setNotice('Спасибо! Ваш отзыв сохранён.');
       }}/>}
+    {payingBooking && (
+      <PaymentModal
+        booking={payingBooking}
+        busy={busy}
+        onClose={() => setPayingBooking(null)}
+        onPay={outcome => pay(payingBooking, outcome)}
+      />
+    )}
   </Container>;
 }
