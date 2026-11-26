@@ -1,0 +1,68 @@
+.admin-operations { min-width: 0; }
+.operations-filters { display: grid; grid-template-columns: 1fr 1fr 1.2fr .8fr; gap: 14px; margin-bottom: 24px; }
+.operations-filters label { font-weight: 600; }
+.operations-filters input { background: var(--surface); }
+.operations-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); padding-block: 22px; margin-bottom: 28px; }
+.operations-summary > div { padding-inline: 20px; border-left: 1px solid var(--line); }
+.operations-summary > div:first-child { border: 0; padding-left: 0; }
+.operations-summary span { display: block; font-size: .8125rem; color: var(--muted); }
+.operations-summary strong { display: block; color: var(--wine); font-size: 2.1rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 7px; }
+.operations-summary small { margin-left: 3px; font-size: 1rem; }
+.operations-panel { margin-bottom: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.operations-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 24px; }
+.operations-panel h2 { font: 700 1.05rem/1.4 Manrope, sans-serif; letter-spacing: -.02em; }
+.operations-panel-heading p { font-size: .8125rem; margin-top: 6px; max-width: 70ch; }
+.operations-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.occupancy-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; padding: 0 24px 20px; font-size: .75rem; color: var(--muted); }
+.occupancy-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.occupancy-legend .confirmed::before, .occupancy-legend .pending::before { content: ''; width: 12px; height: 12px; border-radius: 3px; background: #dce9dd; border: 1px solid #527357; }
+.occupancy-legend .pending::before { background: #faedce; border-color: #926a22; }
+.occupancy-scroll { contain: paint; max-height: 650px; overflow: auto; overscroll-behavior: contain; }
+.occupancy-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: .8125rem; table-layout: fixed; }
+.occupancy-table th, .occupancy-table td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 96px; height: 76px; padding: 5px; }
+.occupancy-table thead th { position: sticky; top: 0; z-index: 2; background: #eef1e7; height: 58px; font-weight: 600; width: 96px; border-top: 1px solid var(--line); }
+.occupancy-table th small { display: block; margin-top: 4px; font-size: .75rem; font-weight: 400; }
+.occupancy-table th:first-child { position: sticky; left: 0; z-index: 1; width: 170px; min-width: 170px; max-width: 170px; text-align: left; padding-inline: 16px; background: var(--surface); box-shadow: 3px 0 6px rgb(27 44 35 / 5%); overflow-wrap: anywhere; }
+.occupancy-table thead th:first-child { z-index: 3; background: #eef1e7; }
+.occupancy-table th[aria-current=date] { background: var(--wine); color: white; }
+.occupancy-table th[aria-current=date] small { color: inherit; }
+.occupancy-table .is-today { background: #edf1e7; }
+.stay-block { display: flex; width: 100%; justify-content: flex-start; gap: 6px; padding: 7px 9px; min-height: 58px; text-align: left; border-radius: 5px; font-size: .75rem; font-weight: 700; overflow: hidden; white-space: nowrap; }
+.stay-block > span { overflow: hidden; text-overflow: ellipsis; }
+.stay-block small { display: block; margin-top: 5px; color: inherit; font-weight: 400; }
+.stay-block.confirmed, .booking-state.confirmed { background: #dce9dd; border-color: #527357; color: #244c2d; }
+.stay-block.pending, .booking-state.pending { background: #faedce; border-color: #926a22; color: #72500e; }
+.operations-note { padding: 18px 24px; font-size: .75rem; max-width: 95ch; }
+.operations-revenue { padding: 0 24px; display: flex; flex-wrap: wrap; gap: 20px; }
+.operations-revenue strong { font-size: 1.8rem; font-weight: 600; color: var(--wine); font-variant-numeric: tabular-nums; }
+.operations-chart { height: 160px; margin: 0 24px; display: flex; align-items: end; gap: 2px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to top, transparent 0, transparent 39px, #e9e8df 39px, #e9e8df 40px); }
+.operations-chart > div { flex: 1; height: 100%; display: flex; align-items: end; min-width: 0; }
+.operations-chart span { display: block; width: 100%; background: #527357; border-radius: 3px 3px 0 0; }
+.operations-chart-axis { display: flex; justify-content: space-between; padding: 10px 24px 22px; font-size: .75rem; color: var(--muted); }
+.operations-downloads { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 24px; }
+.operations-modal { overscroll-behavior: contain; }
+.operations-modal dl { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; margin-block: 24px; font-size: .875rem; }
+.operations-modal dt { color: var(--muted); }
+.operations-modal dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+.booking-state { display: inline-block; padding: 7px 10px; border: 1px solid; border-radius: 5px; font-size: .8125rem; }
+@media (hover: hover) {
+  .stay-block.confirmed:hover { background: #c9dec9; border-color: #244c2d; }
+  .stay-block.pending:hover { background: #f4dfaf; border-color: #72500e; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .admin-operations button:not(.stay-block) { transition: scale 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out; }
+  .admin-operations button:not(.stay-block):not(:disabled):active { scale: .96; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-operations button { transition: opacity 150ms ease-out; } }
+@media (max-width: 1100px) { .operations-filters { grid-template-columns: 1fr 1fr; } .operations-panel-heading { align-items: start; flex-wrap: wrap; } }
+@media (max-width: 530px) {
+  .operations-filters { gap: 12px; }
+  .operations-summary { grid-template-columns: 1fr 1fr; gap: 20px 0; }
+  .operations-summary > div:nth-child(odd) { border: 0; padding-left: 0; }
+  .operations-summary strong { font-size: 1.8rem; }
+  .operations-panel-heading { padding: 20px 16px; }
+  .occupancy-legend { padding-inline: 16px; gap: 10px; }
+  .occupancy-table th:first-child { min-width: 115px; width: 115px; max-width: 115px; padding-inline: 10px; }
+  .operations-downloads, .operations-note, .operations-revenue { padding-inline: 16px; }
+  .operations-downloads button { width: 100%; }
+}
