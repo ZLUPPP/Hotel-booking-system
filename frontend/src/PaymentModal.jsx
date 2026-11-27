@@ -57,7 +57,7 @@ export function PaymentModal({booking, onClose, onPay, busy}) {
     setClientError('');
 
     try {
-      const res = await onPay(outcome);
+      const res = await onPay(outcome, method);
       if (res && res.payment && res.payment.status === 'failed') {
         setPaymentState('failed');
         setFailureReason(failMsg || 'Банк-эмитент отклонил операцию. Проверьте реквизиты карты, баланс или попробуйте другую карту.');
@@ -65,8 +65,10 @@ export function PaymentModal({booking, onClose, onPay, busy}) {
         setPaymentState('success');
       }
     } catch (err) {
+      // Показываем настоящую причину, а не общую фразу: так видно, что ответил сервер.
+      console.error('payment failed', err);
       setPaymentState('failed');
-      setFailureReason('Произошла ошибка при обработке платежа. Пожалуйста, повторите попытку.');
+      setFailureReason(err?.message || 'Произошла ошибка при обработке платежа. Пожалуйста, повторите попытку.');
     }
   }
 
@@ -225,7 +227,7 @@ export function PaymentModal({booking, onClose, onPay, busy}) {
                 onClick={() => { setMethod('pay'); setClientError(''); }}
                 disabled={busy || paymentState === 'processing'}
               >
-                <span className="payment-tab-icon"> / G</span>
+                <span className="payment-tab-icon"> / G</span>
                 <span>Apple / Google Pay</span>
               </button>
             </div>
@@ -396,7 +398,7 @@ export function PaymentModal({booking, onClose, onPay, busy}) {
               <div className="payment-fast-view">
                 <div className="fast-pay-card">
                   <div className="fast-pay-icons">
-                    <span className="apple-badge"> Pay</span>
+                    <span className="apple-badge"> Pay</span>
                     <span className="google-badge">G Pay</span>
                   </div>
                   <h3>Быстрая оплата в 1 клик</h3>
@@ -412,7 +414,7 @@ export function PaymentModal({booking, onClose, onPay, busy}) {
                     Отмена
                   </button>
                   <button type="button" className="btn-pay apple-pay-btn" onClick={handleSubmit} disabled={busy || paymentState === 'processing'}>
-                    {busy || paymentState === 'processing' ? 'Авторизация биометрии…' : `Оплатить через  / G Pay`}
+                    {busy || paymentState === 'processing' ? 'Авторизация биометрии…' : `Оплатить через  / G Pay`}
                   </button>
                 </div>
               </div>

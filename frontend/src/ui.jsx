@@ -1,4 +1,5 @@
 import React, {useEffect, useRef} from 'react';
+import {currentLanguage, currencyPreference, translate} from './i18n';
 
 const icons = {
   chart: <><path d="M4 3v18h17M8 16v-4m5 4V8m5 8V5"/></>,
@@ -37,14 +38,33 @@ export function Icon({name, size = 20}) {
 }
 
 export const image = name => import.meta.env.BASE_URL + 'images/' + name + '.webp';
-export const money = (amount, currency) => new Intl.NumberFormat('ru-KZ', {
-  style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2
-}).format(Number(amount));
-export const count = (number, one, few, many) => number + ' ' + ({one, few, many}[new Intl.PluralRules('ru').select(number)] ?? many);
+export const money = (amount, currency) => {
+  const displayCurrency = currencyPreference();
+  let value = Number(amount);
+  let rate = 0;
+  try { rate = Number(localStorage.getItem('qonaq.usd-kzt')); } catch {}
+  let shownCurrency = currency;
+  if (rate > 0 && currency === 'KZT' && displayCurrency === 'USD') {
+    value /= rate;
+    shownCurrency = 'USD';
+  } else if (rate > 0 && currency === 'USD' && displayCurrency === 'KZT') {
+    value *= rate;
+    shownCurrency = 'KZT';
+  }
+  const locale = {ru: 'ru-KZ', en: 'en-US', kk: 'kk-KZ'}[currentLanguage()] || 'ru-KZ';
+  return new Intl.NumberFormat(locale, {style: 'currency', currency: shownCurrency,
+    minimumFractionDigits: 0, maximumFractionDigits: shownCurrency === 'KZT' ? 0 : 2}).format(value);
+};
+export const count = (number, one, few, many) => {
+  const lang = currentLanguage();
+  if (lang === 'en') return `${number} ${translate(number === 1 ? one : many, lang)}`;
+  if (lang === 'kk') return `${number} ${translate(one, lang)}`;
+  return number + ' ' + ({one, few, many}[new Intl.PluralRules('ru').select(number)] ?? many);
+};
 export const today = () => new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Qyzylorda', year: 'numeric', month: '2-digit', day: '2-digit'
 }).format(new Date());
-export const dateLabel = (day, includeYear = false) => new Intl.DateTimeFormat('ru', {
+export const dateLabel = (day, includeYear = false) => new Intl.DateTimeFormat({ru: 'ru-KZ', en: 'en-US', kk: 'kk-KZ'}[currentLanguage()] || 'ru-KZ', {
   day: 'numeric', month: 'long', year: includeYear ? 'numeric' : undefined, timeZone: 'UTC'
 }).format(new Date(day + 'T00:00:00Z'));
 export const stayLength = (start, end) => (Date.parse(end) - Date.parse(start)) / 86400000;

@@ -2,8 +2,8 @@ import React, {useEffect, useRef, useState} from 'react';
 import {RoomFilters} from './RoomFilters';
 import {StayPrice} from './StayPrice';
 import {dateLabel, Feedback, Icon, today} from './ui';
+import {currentLanguage, translate} from './i18n';
 
-const monthFormatter = new Intl.DateTimeFormat('ru', {month: 'long', timeZone: 'UTC'});
 const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const asDate = day => new Date(day + 'T00:00:00Z');
 const iso = date => date.toISOString().slice(0, 10);
@@ -27,7 +27,8 @@ function shiftDay(day, amount) {
 }
 
 function monthTitle(month) {
-  return monthFormatter.format(asDate(month)) + ' ' + month.slice(0, 4);
+  const locale = {ru: 'ru-KZ', en: 'en-US', kk: 'kk-KZ'}[currentLanguage()];
+  return new Intl.DateTimeFormat(locale, {month: 'long', timeZone: 'UTC'}).format(asDate(month)) + ' ' + month.slice(0, 4);
 }
 
 function Month({month, minimum, start, end, activeDay, preview, onFocus, onSelect, onKey, setPreview}) {
@@ -44,7 +45,7 @@ function Month({month, minimum, start, end, activeDay, preview, onFocus, onSelec
   return <div className="calendar-month" role="group" aria-label={monthTitle(month)}>
     <h3>{monthTitle(month)}</h3>
     <div className="calendar-grid">
-      {weekdays.map(day => <span className="calendar-weekday" key={day} aria-hidden="true">{day}</span>)}
+      {weekdays.map(day => <span className="calendar-weekday" key={day} aria-hidden="true">{translate(day)}</span>)}
       {cells.map((number, index) => {
         if (!number) return <span key={index} aria-hidden="true"/>;
         const day = month.slice(0, 8) + String(number).padStart(2, '0');
@@ -129,18 +130,18 @@ export function BookingCalendar({filters, setFilters, onSearch, pending, error, 
   return <section id="search" className="stay-section" aria-labelledby="stay-title">
     <div className="container stay-container">
       <div className="stay-heading">
-        <div><span className="section-kicker"><Icon name="calendar" size={17}/> Бронирование</span>
-          <h2 id="stay-title" tabIndex={-1}>Когда вас ждать?</h2></div>
-        <p>Выберите день заезда и день выезда. Мы покажем свободные номера и стоимость за весь период.</p>
+        <div><span className="section-kicker"><Icon name="calendar" size={17}/> {translate('Бронирование')}</span>
+          <h2 id="stay-title" tabIndex={-1}>{translate('Когда вас ждать?')}</h2></div>
+        <p>{translate('Выберите день заезда и день выезда. Мы покажем свободные номера и стоимость за весь период.')}</p>
       </div>
       <form onSubmit={event => {event.preventDefault(); onSearch();}} aria-busy={pending}>
-        <fieldset className="stay-form" disabled={pending} aria-label="Даты и параметры проживания">
+        <fieldset className="stay-form" disabled={pending} aria-label={translate('Даты и параметры проживания')}>
           <div className="calendar" ref={grid} onPointerLeave={() => setPreview('')}>
             <div className="calendar-navigation">
               <button type="button" className="icon-button calendar-nav" disabled={month <= monthOf(minimum)}
-                onClick={() => changeMonth(-1)} aria-label="Предыдущий месяц"><Icon name="left" size={18}/></button>
+                onClick={() => changeMonth(-1)} aria-label={translate('Предыдущий месяц')}><Icon name="left" size={18}/></button>
               <button type="button" className="icon-button calendar-nav" disabled={lastMonth >= '9999-12-01'}
-                onClick={() => changeMonth(1)} aria-label="Следующий месяц"><Icon name="right" size={18}/></button>
+                onClick={() => changeMonth(1)} aria-label={translate('Следующий месяц')}><Icon name="right" size={18}/></button>
             </div>
             <div className="calendar-months">
               {(compact ? [month] : [month, lastMonth]).map(value => <Month key={value} month={value} minimum={minimum}
@@ -148,31 +149,31 @@ export function BookingCalendar({filters, setFilters, onSearch, pending, error, 
                 onSelect={select} onKey={onKey} setPreview={setPreview}/>)}
             </div>
             <div className="calendar-footer">
-              <p role="status">{end ? 'Можно выбрать новый период' : start ? 'Теперь выберите дату выезда' : 'Выберите дату заезда'}</p>
+              <p role="status">{translate(end ? 'Можно выбрать новый период' : start ? 'Теперь выберите дату выезда' : 'Выберите дату заезда')}</p>
               <button className="text-button" type="button" disabled={!start} onClick={() => {
                 setFilters(current => ({...current, check_in: '', check_out: ''}));
                 setPreview('');
-              }}>Сбросить даты</button>
+              }}>{translate('Сбросить даты')}</button>
             </div>
           </div>
           <div className="stay-summary">
-            <h3>Ваше проживание</h3>
+            <h3>{translate('Ваше проживание')}</h3>
             {preferredRoom && <div className="chosen-room">
-              <span><Icon name="bed" size={17}/> Номер {preferredRoom.number}</span>
-              <button type="button" className="icon-button" onClick={clearRoom} aria-label="Искать среди всех номеров"><Icon name="close" size={16}/></button>
+              <span><Icon name="bed" size={17}/> {translate('Номер')} {preferredRoom.number}</span>
+              <button type="button" className="icon-button" onClick={clearRoom} aria-label={translate('Искать среди всех номеров')}><Icon name="close" size={16}/></button>
             </div>}
             <dl className="stay-dates" aria-live="polite">
-              <div><dt>Заезд</dt><dd>{start ? dateLabel(start, true) : 'Выберите дату'}</dd></div>
-              <div><dt>Выезд</dt><dd>{end ? dateLabel(end, true) : 'Выберите дату'}</dd></div>
+              <div><dt>{translate('Заезд')}</dt><dd>{start ? dateLabel(start, true) : translate('Выберите дату')}</dd></div>
+              <div><dt>{translate('Выезд')}</dt><dd>{end ? dateLabel(end, true) : translate('Выберите дату')}</dd></div>
             </dl>
             <div className="stay-guests">
-              <label htmlFor="guests">Гости</label>
+              <label htmlFor="guests">{translate('Гости')}</label>
               <div className="guest-control">
-                <button className="icon-button" type="button" aria-label="Уменьшить число гостей" disabled={Number(filters.capacity) <= 1}
+                <button className="icon-button" type="button" aria-label={translate('Уменьшить число гостей')} disabled={Number(filters.capacity) <= 1}
                   onClick={() => update('capacity', String(Number(filters.capacity) - 1))}><Icon name="minus" size={16}/></button>
                 <input id="guests" type="number" min="1" max="2147483647" value={filters.capacity} required
                   onChange={e => update('capacity', e.target.value)}/>
-                <button className="icon-button" type="button" aria-label="Увеличить число гостей" disabled={Number(filters.capacity) >= 2147483647}
+                <button className="icon-button" type="button" aria-label={translate('Увеличить число гостей')} disabled={Number(filters.capacity) >= 2147483647}
                   onClick={() => update('capacity', String(Number(filters.capacity) + 1))}><Icon name="plus" size={16}/></button>
               </div>
             </div>
@@ -180,7 +181,7 @@ export function BookingCalendar({filters, setFilters, onSearch, pending, error, 
             <Feedback error={error}/>
             <StayPrice filters={filters} preferredRoom={preferredRoom}/>
             <button className="primary stay-submit" disabled={pending || !end}>
-              {pending ? 'Проверяем даты…' : preferredRoom ? 'Проверить номер' : 'Найти номера'}<Icon name="arrow" size={19}/>
+              {translate(pending ? 'Проверяем даты…' : preferredRoom ? 'Проверить номер' : 'Найти номера')}<Icon name="arrow" size={19}/>
             </button>
           </div>
         </fieldset>

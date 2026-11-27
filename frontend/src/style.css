@@ -205,6 +205,19 @@ small { color: var(--muted); }
 .user-editor h2 { margin-top: 0; }
 .check { display: inline-flex; align-items: center; min-height: 44px; }
 .check input { width: 18px; min-height: 18px; accent-color: var(--wine); }
+.language-picker { display: inline-flex; align-items: center; }
+.language-picker select { min-width: 66px; min-height: 38px; padding: 5px 25px 5px 9px; border-radius: 8px; font-weight: 800; }
+.room-photo { position: relative; }
+.room-favorite { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 42px; min-height: 42px; padding: 0; border: 1px solid rgb(255 255 255 / 75%); border-radius: 50%; background: rgb(255 255 255 / 92%); color: var(--wine); box-shadow: 0 2px 10px rgb(0 0 0 / 14%); }
+.room-favorite.is-saved svg { fill: currentColor; }
+.my-payment-list { display: grid; gap: 10px; width: 100%; margin-top: 16px; }
+.my-payment { display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 5px 15px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.my-payment > div, .my-payment small { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.my-payment > strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.payment-state { font-size: .78rem; font-weight: 800; }
+.payment-state.succeeded { color: #246b3b; }
+.payment-state.failed { color: #9a3b32; }
+.account-data-row select:disabled { opacity: .7; cursor: progress; }
 
 .alert, .notice { display: flex; align-items: center; gap: 8px; padding: 12px 15px; margin-block: 13px; border-radius: 6px; font-size: .88rem; }
 .alert { background: #f7e4de; color: #782f25; }
@@ -268,6 +281,8 @@ body:has(dialog[open]) { overflow: hidden; }
   .account-data-row { grid-template-columns: 1fr; gap: 6px; }
   .account-row-note { grid-column: 1; }
   .account-data-row > button { grid-column: 1; grid-row: auto; }
+  .my-payment { grid-template-columns: 1fr; }
+  .my-payment > strong { grid-column: 1; grid-row: auto; }
   .traveler-add-form { grid-template-columns: 1fr; }
   .profile-favorite-row { align-items: flex-start; flex-direction: column; }
   .profile-personal-grid { grid-template-columns: 1fr; }

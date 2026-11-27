@@ -3,6 +3,7 @@ import {BookingCalendar} from './BookingCalendar';
 import {detailsFor} from './roomDetails';
 import {count, dateLabel, Feedback, Icon, image, Modal, money, stayLength} from './ui';
 import {RoomRating} from './Reviews';
+import {translate} from './i18n';
 
 const roomType = room => detailsFor(room)[0];
 
@@ -42,28 +43,31 @@ export function Pagination({page, pending, onPage}) {
   </div>;
 }
 
-function RoomCard({room, searched, selectRoom, saveRoom, pending}) {
+function RoomCard({room, searched, selectRoom, saveRoom, pending, favoriteIds = [], onToggleFavorite}) {
   const [title, photo, description] = detailsFor(room);
   return <article className="room">
     <div className="room-photo">
       <img src={image(photo)} alt={`Пример интерьера категории «${title}»`} loading="lazy" width="900" height="600"/>
-      {!room.is_active && <span>Номер отключён</span>}
+      {!room.is_active && <span>{translate('Номер отключён')}</span>}
+      {!saveRoom && <button type="button" className={`room-favorite ${favoriteIds.includes(room.id) ? 'is-saved' : ''}`} aria-pressed={favoriteIds.includes(room.id)}
+        aria-label={favoriteIds.includes(room.id) ? translate('Удалить из избранного') : translate('Добавить в избранное')}
+        onClick={() => onToggleFavorite?.(room.id)}><Icon name="heart" size={20}/></button>}
     </div>
     <div className="room-content">
       <div className="room-info">
-        <span>Номер {room.number}</span>
-        <span><Icon name="guests" size={17}/> До {count(room.capacity, 'гостя', 'гостей', 'гостей')}</span>
+        <span>{translate('Номер')} {room.number}</span>
+        <span><Icon name="guests" size={17}/> {translate('До')} {count(room.capacity, 'гостя', 'гостей', 'гостей')}</span>
       </div>
       <h3>{title}</h3>
       <RoomRating room={room}/>
       {description && <p className="room-description">{description}</p>}
       <div className="room-rate">
-        <p className="price">{money(room.price_per_night, room.currency)} <small>/ ночь</small></p>
-        {searched && <p className="room-total">{money(room.total_amount, room.currency)} за весь период</p>}
+        <p className="price">{money(room.price_per_night, room.currency)} <small>/ {translate('ночь')}</small></p>
+        {searched && <p className="room-total">{money(room.total_amount, room.currency)} {translate('за весь период')}</p>}
       </div>
       <button className="room-action" disabled={pending || !room.is_active} onClick={() => selectRoom(room)}
-        aria-label={`${searched ? 'Забронировать' : 'Выбрать даты'}: номер ${room.number}`}>
-        {searched ? 'Забронировать' : 'Выбрать даты'}<Icon name="arrow" size={18}/>
+        aria-label={`${translate(searched ? 'Забронировать' : 'Выбрать даты')}: ${translate('номер')} ${room.number}`}>
+        {translate(searched ? 'Забронировать' : 'Выбрать даты')}<Icon name="arrow" size={18}/>
       </button>
       {saveRoom && <RoomEditor room={room} busy={pending} save={body => saveRoom(room.id, body)}/>}
     </div>
@@ -141,26 +145,26 @@ function HotelSections() {
 }
 
 export function Home({filters, setFilters, onSearch, searched, page, pending, loading, onPage, selectRoom,
-  saveRoom, error, catalogError, retry, preferredRoom, clearRoom, searchAll}) {
+  saveRoom, error, catalogError, retry, preferredRoom, clearRoom, searchAll, favoriteIds, onToggleFavorite}) {
   const empty = !page.items.length && !loading && !pending;
   return <main id="main">
     <section className="hero">
       <img className="hero-image" src={image('qonaq-alatau')} alt="" fetchPriority="high" width="1942" height="809"/>
       <div className="container hero-inner">
-        <span className="hero-location"><Icon name="pin" size={17}/> Алматы, Казахстан</span>
-        <h1>У подножия гор,<br/>вдали от спешки</h1>
-        <p>Qonaq Hotel в предгорьях Алатау. Тёплый приём, спокойные вечера и время для себя.</p>
+        <span className="hero-location"><Icon name="pin" size={17}/> {translate('Алматы, Казахстан')}</span>
+        <h1>{translate('У подножия гор, вдали от спешки')}</h1>
+        <p>{translate('Qonaq Hotel в предгорьях Алатау. Тёплый приём, спокойные вечера и время для себя.')}</p>
         <div className="hero-actions">
-          <a href="#search" className="light-button">Выбрать даты <Icon name="arrow" size={19}/></a>
-          <a href="#rooms" className="hero-link">Посмотреть номера <Icon name="down" size={17}/></a>
+          <a href="#search" className="light-button">{translate('Выбрать даты')} <Icon name="arrow" size={19}/></a>
+          <a href="#rooms" className="hero-link">{translate('Посмотреть номера')} <Icon name="down" size={17}/></a>
         </div>
       </div>
     </section>
     <div className="welcome">
       <div className="container welcome-inner">
         <div className="welcome-mark"><Icon name="mark" size={28}/><span>Qonaq Hotel</span></div>
-        <p>Бутик-отель в предгорьях Заилийского Алатау</p>
-        <a href="#hotel" className="quiet-link">Об отеле <Icon name="arrow" size={18}/></a>
+          <p>{translate('Бутик-отель в предгорьях Заилийского Алатау')}</p>
+        <a href="#hotel" className="quiet-link">{translate('Об отеле')} <Icon name="arrow" size={18}/></a>
       </div>
     </div>
     <BookingCalendar filters={filters} setFilters={setFilters} onSearch={onSearch} pending={pending}
@@ -168,7 +172,7 @@ export function Home({filters, setFilters, onSearch, searched, page, pending, lo
     <section id="rooms" className="container rooms-section" aria-labelledby="rooms-title" aria-busy={loading || pending}>
       <div className="section-heading">
         <div><span className="section-kicker">Проживание</span>
-          <h2 id="rooms-title" tabIndex={-1}>{searched ? 'Свободные номера' : 'Номера и люксы'}</h2>
+          <h2 id="rooms-title" tabIndex={-1}>{translate(searched ? 'Свободные номера' : 'Номера и люксы')}</h2>
           <p>{searched ? `${dateLabel(searched.check_in, true)} — ${dateLabel(searched.check_out, true)} · ${count(Number(searched.capacity), 'гость', 'гостя', 'гостей')}` :
             'От уютного классического номера до просторной резиденции.'}</p></div>
         {!loading && !catalogError && <span className="result-count" role="status">{count(page.total, 'номер', 'номера', 'номеров')}</span>}
@@ -185,7 +189,7 @@ export function Home({filters, setFilters, onSearch, searched, page, pending, lo
         {catalogError ? <button onClick={retry}>Обновить каталог</button> : searched && <a className="secondary" href="#search">Изменить поиск</a>}
       </div>}
       <div className="room-grid">{page.items.map(room => <RoomCard key={room.id} room={room} searched={searched}
-        selectRoom={selectRoom} saveRoom={saveRoom} pending={pending}/>)}</div>
+        selectRoom={selectRoom} saveRoom={saveRoom} pending={pending} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite}/>)}</div>
       {page.items.length > 0 && <p className="photo-note">Фотографии показывают примеры интерьеров.</p>}
       <Pagination page={page} pending={pending} onPage={onPage}/>
       {saveRoom && <RoomEditor save={body => saveRoom(null, body)} busy={pending}/>}
