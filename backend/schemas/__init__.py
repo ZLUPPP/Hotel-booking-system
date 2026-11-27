@@ -150,6 +150,7 @@ class BookingSummary(Booking):
 
 class PaymentCreate(Input):
     outcome: Literal['succeeded', 'failed']
+    method: Literal['card', 'kaspi', 'wallet'] = 'card'
 
 
 class Payment(BaseModel):
@@ -159,7 +160,20 @@ class Payment(BaseModel):
     amount: Decimal
     currency: str
     status: str
+    method: str = 'card'
     failure_reason: str | None
+    created_at: datetime
+
+
+class MyPayment(BaseModel):
+    id: UUID
+    booking_id: UUID
+    room_number: str
+    room_type: str
+    amount: Decimal
+    currency: str
+    status: str
+    method: str
     created_at: datetime
 
 

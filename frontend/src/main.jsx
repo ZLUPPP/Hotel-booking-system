@@ -7,9 +7,42 @@ import {Dashboard, emptyPage, pageSize} from './Dashboard';
 import {BookingDialog, Home} from './Home';
 import {roomSearchParams, stayQuery} from './roomSearch';
 import {Brand, Icon, today} from './ui';
+import {currentLanguage, languages, translate} from './i18n';
 import './style.css';
 import './hotel.css';
 import './interactions.css';
+import './language-flags.css';
+
+const flags = {
+  ru: <>
+    <rect width="24" height="8" fill="#ffffff"/>
+    <rect y="8" width="24" height="8" fill="#0039a6"/>
+    <rect y="16" width="24" height="8" fill="#d52b1e"/>
+  </>,
+  en: <>
+    <rect width="24" height="24" fill="#012169"/>
+    <path d="M0 0l24 24M24 0L0 24" stroke="#ffffff" strokeWidth="4"/>
+    <path d="M0 0l24 24M24 0L0 24" stroke="#c8102e" strokeWidth="1.6"/>
+    <path d="M12 0v24M0 12h24" stroke="#ffffff" strokeWidth="6"/>
+    <path d="M12 0v24M0 12h24" stroke="#c8102e" strokeWidth="3.6"/>
+  </>,
+  kk: <>
+    <rect width="24" height="24" fill="#00afca"/>
+    <circle cx="12" cy="11" r="4" fill="#fec50c"/>
+    <circle cx="12" cy="11" r="5.8" fill="none" stroke="#fec50c" strokeWidth="1.2" strokeDasharray="1.2 1.4"/>
+    <path d="M7 19c3 1.3 7 1.3 10 0" stroke="#fec50c" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+  </>,
+};
+
+function LanguageSwitch({value, onChange}) {
+  return <div className="language-flags" role="group" aria-label={translate('Язык')}>
+    {languages.map(language => <button key={language.value} type="button" className="flag-button"
+      aria-pressed={value === language.value} aria-label={language.label} title={language.label}
+      onClick={() => onChange(language.value)}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">{flags[language.value]}</svg>
+    </button>)}
+  </div>;
+}
 
 function AccountMenu({user, pending, onProfile, onAdmin, onLogout}) {
   const menu = useRef(null);
@@ -35,14 +68,18 @@ function AccountMenu({user, pending, onProfile, onAdmin, onLogout}) {
     }}>
     <summary className="header-account"><Icon name="guests" size={18}/><span>{user.full_name}</span><Icon name="down" size={15}/></summary>
     <div className="account-menu-panel">
-      {user.role === 'admin' && <button disabled={pending} onClick={() => {close(); onAdmin();}}><Icon name="sliders" size={16}/>Управление отелем</button>}
-      <button disabled={pending} onClick={() => {close(); onProfile();}}>Профиль</button>
-      <button disabled={pending} onClick={() => {close(); onLogout();}}>Выйти</button>
+      {user.role === 'admin' && <button disabled={pending} onClick={() => {close(); onAdmin();}}><Icon name="sliders" size={16}/>{translate('Управление отелем')}</button>}
+      <button disabled={pending} onClick={() => {close(); onProfile();}}>{translate('Профиль')}</button>
+      <button disabled={pending} onClick={() => {close(); onLogout();}}>{translate('Выйти')}</button>
     </div>
   </details>;
 }
 
 function App() {
+  const [, setDisplayVersion] = useState(0);
+  const [favoriteIds, setFavoriteIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('qonaq.favorite-rooms') || '[]'); } catch { return []; }
+  });
   const [user, setUser] = useState(null);
   const [restoringSession, setRestoringSession] = useState(hasToken);
   const [view, setView] = useState('home');
@@ -63,6 +100,22 @@ function App() {
   const previousView = useRef(view);
   const isAdmin = user?.role === 'admin';
   const authorizedView = ['users', 'admin'].includes(view) && !isAdmin ? 'profile' : view;
+
+  function updateDisplaySettings() {
+    setDisplayVersion(value => value + 1);
+  }
+
+  function changeLanguage(value) {
+    try { localStorage.setItem('qonaq.language', value); } catch {}
+    document.documentElement.lang = value;
+    updateDisplaySettings();
+  }
+
+  function toggleFavorite(roomId) {
+    const next = favoriteIds.includes(roomId) ? favoriteIds.filter(id => id !== roomId) : [...favoriteIds, roomId];
+    setFavoriteIds(next);
+    localStorage.setItem('qonaq.favorite-rooms', JSON.stringify(next));
+  }
 
   async function run(work) {
     if (operation.current) return;
@@ -119,6 +172,24 @@ function App() {
       scrollToSection(destination.current, true);
     }
   }, [view]);
+
+  useEffect(() => {
+    document.documentElement.lang = currentLanguage();
+  }, []);
+
+  // Курс USD/KZT нужен всему сайту: его читает money() из ui.jsx.
+  useEffect(() => {
+    const controller = new AbortController();
+    api('/rates/usd-kzt', {signal: controller.signal}).then(result => {
+      if (controller.signal.aborted) return;
+      try { localStorage.setItem('qonaq.usd-kzt', String(result.rate)); } catch {}
+      try { localStorage.setItem('qonaq.usd-kzt-date', String(result.date || '')); } catch {}
+      updateDisplaySettings();
+    }).catch(() => {
+      // Без курса цены остаются в исходной валюте.
+    });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     function expired() {
@@ -282,25 +353,27 @@ function App() {
       <div className="container header-inner">
         <Brand onClick={goHome}/>
         <nav aria-label="Основная навигация">
-          <a href="#rooms" onClick={goHome}>Номера</a>
-          <a href="#hotel" onClick={goHome}>Об отеле</a>
-          {!user && <a href="#experiences" onClick={goHome}>Впечатления</a>}
+          <a href="#rooms" onClick={goHome}>{translate('Номера')}</a>
+          <a href="#hotel" onClick={goHome}>{translate('Об отеле')}</a>
+          {!user && <a href="#experiences" onClick={goHome}>{translate('Впечатления')}</a>}
           {user && <>
             <button className="nav-button" disabled={pending} aria-current={view === 'bookings' ? 'page' : undefined} onClick={() => navigate('bookings')}>
-              {user.role === 'guest' ? 'Мои брони' : 'Все брони'}
+              {translate(user.role === 'guest' ? 'Мои брони' : 'Все брони')}
             </button>
           </>}
         </nav>
         <div className="header-actions">
           {user ? <AccountMenu user={user} pending={pending} onProfile={() => navigate('profile')} onAdmin={() => navigate('admin')} onLogout={logout}/> :
             <button className="header-account" disabled={pending || restoringSession} onClick={openAuth}>
-              <Icon name="guests" size={18}/>{restoringSession ? 'Аккаунт' : 'Войти'}
+              <Icon name="guests" size={18}/>{translate(restoringSession ? 'Аккаунт' : 'Войти')}
             </button>}
-          <a className="primary header-book" href="#search" onClick={goHome}>Забронировать</a>
+          <LanguageSwitch value={currentLanguage()} onChange={changeLanguage}/>
+          <a className="primary header-book" href="#search" onClick={goHome}>{translate('Забронировать')}</a>
         </div>
       </div>
     </header>
     {view === 'home' && <Home filters={filters} setFilters={updateFilters} onSearch={search} page={page}
+      favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite}
       searched={searchResult?.query} loading={catalogLoading && !searchResult} pending={pending} selectRoom={selectRoom}
       error={draft ? '' : error} catalogError={!searchResult && catalogError}
       preferredRoom={preferredRoom} clearRoom={clearRoom} searchAll={searchAll}
@@ -314,17 +387,18 @@ function App() {
     {user && authorizedView === 'admin' && <Admin user={user} updateUser={setUser} goHome={goHome} attempts={attempts}
       onChanged={() => {setSearchResult(null); loadCatalog(0).catch(err => setCatalogError(err.message));}}/>}
     {user && !['home', 'auth', 'admin'].includes(authorizedView) && <Dashboard key={authorizedView} view={authorizedView} user={user}
+      favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} onDisplaySettingsChange={updateDisplaySettings}
       updateUser={updated => setUser(current => current?.id === updated.id ? updated : current)}
       created={created} goHome={goHome} onBookings={() => navigate('bookings')} onLogout={logout} attempts={attempts}/>}
     <footer className="site-footer">
       <div className="container footer-inner">
-        <div className="footer-brand"><Brand onClick={goHome}/><span><Icon name="pin" size={17}/> Алматы, Казахстан</span></div>
+        <div className="footer-brand"><Brand onClick={goHome}/><span><Icon name="pin" size={17}/> {translate('Алматы, Казахстан')}</span></div>
         <nav aria-label="Навигация в подвале">
-          <a href="#rooms" onClick={goHome}>Номера и люксы</a>
-          <a href="#hotel" onClick={goHome}>Об отеле</a>
-          <a href="#faq" onClick={goHome}>Частые вопросы</a>
+          <a href="#rooms" onClick={goHome}>{translate('Номера и люксы')}</a>
+          <a href="#hotel" onClick={goHome}>{translate('Об отеле')}</a>
+          <a href="#faq" onClick={goHome}>{translate('Частые вопросы')}</a>
         </nav>
-        <small>Демонстрационный сайт Qonaq Hotel</small>
+        <small>{translate('Демонстрационный сайт Qonaq Hotel')}</small>
       </div>
     </footer>
     {view === 'home' && draft && <BookingDialog draft={draft} user={user} pending={pending} error={error}

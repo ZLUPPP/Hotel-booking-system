@@ -41,6 +41,7 @@ Payments = sqlalchemy.Table(
         server_default='pending',
         nullable=False,
     ),
+    sqlalchemy.Column('method', sqlalchemy.String(length=16), server_default='card', nullable=False),
     sqlalchemy.Column(
         'failure_reason',
         sqlalchemy.String(length=500),
@@ -56,6 +57,7 @@ Payments = sqlalchemy.Table(
         'amount > 0',
         name='ck_payment_amount',
     ),
+    sqlalchemy.CheckConstraint("method IN ('card', 'kaspi', 'wallet')", name='ck_payment_method'),
     sqlalchemy.CheckConstraint(
         "currency ~ '^[A-Z]{3}$'",
         name='ck_payment_currency',

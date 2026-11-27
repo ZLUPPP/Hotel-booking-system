@@ -6,6 +6,7 @@ import {BookingCard} from './BookingCard';
 import {PaymentModal} from './PaymentModal';
 import {MyReviews, ReviewFormModal} from './Reviews';
 import {Feedback, Icon, money} from './ui';
+import {currentLanguage, currencyPreference, languages, setDisplayCurrency, translate} from './i18n';
 
 export const pageSize = 12;
 export const emptyPage = {items: [], total: 0, offset: 0, limit: pageSize};
@@ -28,13 +29,10 @@ function UserEditor({user, busy, save}) {
   </form>;
 }
 
-export function Dashboard({view, user, updateUser, created, goHome, onBookings, onLogout, attempts, embedded = false}) {
+export function Dashboard({view, user, updateUser, created, goHome, onBookings, onLogout, onDisplaySettingsChange, favoriteIds = [], onToggleFavorite, attempts, embedded = false}) {
   const [profilePanel, setProfilePanel] = useState('personal');
   const [profileRooms, setProfileRooms] = useState([]);
   const [profileRoomsLoaded, setProfileRoomsLoaded] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('qonaq.favorite-rooms') || '[]'); } catch { return []; }
-  });
   const [travelers, setTravelers] = useState(() => {
     try { return JSON.parse(localStorage.getItem('qonaq.travelers') || '[]'); } catch { return []; }
   });
@@ -44,6 +42,13 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
   });
   const [personalizedOffers, setPersonalizedOffers] = useState(() => localStorage.getItem('qonaq.personalized-offers') === 'true');
   const [defaultGuests, setDefaultGuests] = useState(() => localStorage.getItem('qonaq.default-guests') || '2');
+  const [myPayments, setMyPayments] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
+  const [exchangeRate, setExchangeRate] = useState(() => {
+    const rate = Number(localStorage.getItem('qonaq.usd-kzt'));
+    return rate > 0 ? {rate, date: localStorage.getItem('qonaq.usd-kzt-date') || ''} : null;
+  });
+  const [rateError, setRateError] = useState(false);
   const [page, setPage] = useState(emptyPage);
   const [busy, setBusy] = useState(view !== 'profile');
   const [error, setError] = useState('');
@@ -62,6 +67,29 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
   }, [view, profilePanel, profileRoomsLoaded]);
 
   useEffect(() => {
+    if (view !== 'profile' || profilePanel !== 'payments' || myPayments !== null) return;
+    let active = true;
+    api('/payments/mine').then(items => {if (active) setMyPayments(items);})
+      .catch(err => {if (active) setPaymentError(err.message);});
+    return () => {active = false;};
+  }, [view, profilePanel, myPayments]);
+
+  useEffect(() => {
+    if (view !== 'profile' || profilePanel !== 'preferences' || exchangeRate) return;
+    let active = true;
+    api('/rates/usd-kzt').then(result => {
+      if (!active) return;
+      const value = {rate: Number(result.rate), date: result.date};
+      setExchangeRate(value);
+      setRateError(false);
+      localStorage.setItem('qonaq.usd-kzt', String(value.rate));
+      localStorage.setItem('qonaq.usd-kzt-date', value.date);
+      onDisplaySettingsChange?.();
+    }).catch(() => {if (active) setRateError(true);});
+    return () => {active = false;};
+  }, [view, profilePanel, exchangeRate, onDisplaySettingsChange]);
+
+  useEffect(() => {
     if (view !== 'bookings') return;
     let active = true;
     api('/reviews/mine').then(list => {
@@ -69,12 +97,6 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
     }).catch(() => {});
     return () => {active = false;};
   }, [view]);
-
-  function updateFavorites(next) {
-    setFavoriteIds(next);
-    localStorage.setItem('qonaq.favorite-rooms', JSON.stringify(next));
-    window.dispatchEvent(new CustomEvent('qonaq-favorites-changed', {detail: next}));
-  }
 
   function updateTravelers(next) {
     setTravelers(next);
@@ -92,15 +114,25 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
 
   function profilePanelContent(key) {
     if (key === 'trips') return <><p>Проверяйте даты проживания, статус брони и историю оплаты в одном месте.</p><button type="button" className="primary" onClick={onBookings}>Открыть мои бронирования <Icon name="arrow" size={17}/></button></>;
-    if (key === 'favorites') return <><p>Сохраняйте понравившиеся номера, чтобы быстро вернуться к ним.</p>
-      {!profileRoomsLoaded ? <p role="status">Загружаем номера…</p> : <div className="profile-favorite-list">{profileRooms.map(room => {
-        const favorite = favoriteIds.includes(room.id);
-        return <div className="profile-favorite-row" key={room.id}><span><strong>Номер {room.number}</strong><small>{roomTypeLabel(room.room_type)} · {money(room.price_per_night, room.currency)} за ночь</small></span>
-          <button type="button" className={favorite ? 'favorite-toggle is-saved' : 'favorite-toggle'} aria-pressed={favorite}
-            onClick={() => updateFavorites(favorite ? favoriteIds.filter(id => id !== room.id) : [...favoriteIds, room.id])}>
-            <Icon name="heart" size={18}/>{favorite ? 'В избранном' : 'Сохранить'}
-          </button></div>;
-      })}</div>}</>;
+    if (key === 'favorites') {
+      // Показываем только сохранённые номера, а не весь каталог.
+      const favoriteRooms = profileRooms.filter(room => favoriteIds.includes(room.id));
+      return <>
+        {!profileRoomsLoaded ? <p role="status">{translate('Загружаем номера…')}</p> :
+          favoriteRooms.length === 0 ? <div className="profile-empty-state">
+            <Icon name="heart" size={25}/>
+            <strong>{translate('Пока нет избранных номеров')}</strong>
+            <span>{translate('Нажмите на сердечко у номера в каталоге, и он появится здесь.')}</span>
+            <a className="secondary" href="#rooms" onClick={goHome}>{translate('Перейти в каталог')}</a>
+          </div> :
+          <div className="profile-favorite-list">{favoriteRooms.map(room => <div className="profile-favorite-row" key={room.id}>
+            <span><strong>{translate('Номер')} {room.number}</strong><small>{translate(roomTypeLabel(room.room_type))} · {money(room.price_per_night, room.currency)} {translate('за ночь')}</small></span>
+            <button type="button" className="favorite-toggle is-saved" aria-pressed="true" onClick={() => onToggleFavorite?.(room.id)}>
+              <Icon name="heart" size={18}/>{translate('Убрать')}
+            </button>
+          </div>)}</div>}
+      </>;
+    }
     if (key === 'reviews') return <MyReviews onBookings={onBookings}/>;
     if (key === 'personal') return <><p>Контактная информация для ваших бронирований.</p>
       <form id="profile-details" className="account-form profile-form" onSubmit={event => {
@@ -140,11 +172,23 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
       {travelers.length > 0 && <div className="traveler-list">{travelers.map(person => <div className="profile-detail-row" key={person.id}><strong>{person.name}</strong><button type="button" className="text-button" onClick={() => updateTravelers(travelers.filter(item => item.id !== person.id))}>Удалить</button></div>)}</div>}
       <small>Список хранится в этом браузере.</small></>;
     if (key === 'preferences') return <div className="account-data-list">
-      <div className="account-data-row"><strong>Гостей по умолчанию</strong><span><select aria-label="Гостей по умолчанию" value={defaultGuests} onChange={event => {setDefaultGuests(event.target.value); localStorage.setItem('qonaq.default-guests', event.target.value);}}>{[1,2,3,4,5,6].map(value => <option key={value} value={value}>{value} {value === 1 ? 'гость' : 'гостя'}</option>)}</select></span><span className="account-row-note">Сохраняется в этом браузере.</span></div>
-      <div className="account-data-row"><strong>Валюта</strong><span>KZT · Казахстанский тенге</span><span className="account-row-note">Цены на сайте показываются в тенге.</span></div>
-      <div className="account-data-row"><strong>Язык</strong><span>Русский</span><span className="account-row-note">Язык интерфейса сайта.</span></div>
+      <div className="account-data-row"><strong>{translate('Гостей по умолчанию')}</strong><span><select aria-label={translate('Гостей по умолчанию')} value={defaultGuests} onChange={event => {setDefaultGuests(event.target.value); localStorage.setItem('qonaq.default-guests', event.target.value);}}>{[1,2,3,4,5,6].map(value => <option key={value} value={value}>{value} {translate(value === 1 ? 'гость' : 'гостя')}</option>)}</select></span><span className="account-row-note">{translate('Сохраняется в этом браузере.')}</span></div>
+      <div className="account-data-row"><strong>{translate('Отображать цены в')}</strong><span><select aria-label={translate('Отображать цены в')} value={currencyPreference()} disabled={!exchangeRate} onChange={event => {setDisplayCurrency(event.target.value); onDisplaySettingsChange?.();}}><option value="KZT">{translate('Тенге (KZT)')}</option><option value="USD">{translate('Доллары США (USD)')}</option></select></span><span className="account-row-note">{translate('При выборе USD стоимость брони и оплаты не меняется — пересчитывается только отображение.')}</span></div>
+      <div className="account-data-row"><strong>{translate('Язык')}</strong><span><select aria-label={translate('Язык')} value={currentLanguage()} onChange={event => {localStorage.setItem('qonaq.language', event.target.value); document.documentElement.lang = event.target.value; onDisplaySettingsChange?.();}}>{languages.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span><span className="account-row-note">{translate('Язык интерфейса сайта.')}</span></div>
+      <div className="account-data-row"><strong>{translate('Курс валюты')}</strong><span>{exchangeRate ? `${translate('1 USD ≈')} ${Number(exchangeRate.rate).toLocaleString({ru:'ru-KZ',en:'en-US',kk:'kk-KZ'}[currentLanguage()])} ${translate('тенге')}` : rateError ? translate('Не удалось загрузить курс валют. Показываем исходные цены.') : translate('Загружаем…')}</span>{exchangeRate?.date && <span className="account-row-note">{translate('Обновлено')}: {exchangeRate.date} · National Bank of Kazakhstan</span>}</div>
     </div>;
-    if (key === 'payments') return <div className="account-data-list"><div className="account-data-row"><strong>Платёжные карты</strong><span>Нет сохранённых карт</span><span className="account-row-note">Оплата доступна при подтверждении бронирования. Данные карт сайт не хранит.</span></div></div>;
+    if (key === 'payments') return <div className="account-data-list">
+      <p className="payment-privacy-note">{translate('Сведения о платежах по вашим бронированиям. Номер карты не сохраняется.')}</p>
+      <Feedback error={paymentError}/>
+      {myPayments === null && !paymentError && <p role="status">{translate('Загружаем платежи…')}</p>}
+      {myPayments?.length === 0 && <div className="profile-empty-state"><Icon name="card" size={25}/><strong>{translate('Платежей пока нет')}</strong><span>{translate('Оплата появится здесь после бронирования номера.')}</span></div>}
+      {myPayments?.length > 0 && <div className="my-payment-list">{myPayments.map(payment => <article className="my-payment" key={payment.id}>
+        <div><strong>{translate('Бронирование')} · № {payment.room_number}</strong><span>{translate(roomTypeLabel(payment.room_type))} · {new Date(payment.created_at).toLocaleDateString({ru:'ru-KZ',en:'en-US',kk:'kk-KZ'}[currentLanguage()])}</span></div>
+        <strong>{money(payment.amount, payment.currency)}</strong>
+        <span className={`payment-state ${payment.status}`}>{translate(({succeeded:'Успешно',failed:'Отклонён',pending:'Ожидает оплаты'})[payment.status] || payment.status)}</span>
+        <small>{translate('Способ')}: {translate(({card:'Банковская карта',kaspi:'Kaspi QR / Pay',wallet:'Apple / Google Pay'})[payment.method] || payment.method)}</small>
+      </article>)}</div>}
+    </div>;
     if (key === 'privacy') return <div className="account-data-list">
       <div className="account-data-row"><strong>Персональные предложения</strong><span>{personalizedOffers ? 'Включены' : 'Отключены'}</span><span className="account-row-note">Разрешить использовать историю поиска и бронирований для более подходящих предложений.</span><label className="privacy-switch"><input type="checkbox" checked={personalizedOffers} onChange={event => {setPersonalizedOffers(event.target.checked); localStorage.setItem('qonaq.personalized-offers', String(event.target.checked));}}/><span>{personalizedOffers ? 'Включено' : 'Выключено'}</span></label></div>
       <div className="account-data-row"><strong>Рассылка</strong><span>{newsletter ? 'Включена' : 'Отключена'}</span><span className="account-row-note">Новости отеля и специальные предложения на вашу почту.</span><button type="button" className="text-button" onClick={() => {const next = !newsletter; setNewsletter(next); localStorage.setItem('qonaq.newsletter', String(next));}}>Изменить</button></div>
@@ -167,7 +211,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
     const opened = profilePanel === key;
     return <button type="button" className="profile-menu-row" aria-current={opened ? 'page' : undefined}
       onClick={() => setProfilePanel(key)}>
-      <Icon name={icon} size={22}/><span>{label}</span><Icon name="right" size={19}/>
+      <Icon name={icon} size={22}/><span>{translate(label)}</span><Icon name="right" size={19}/>
     </button>;
   }
 
@@ -208,18 +252,32 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
     });
   }
 
-  async function pay(booking, outcome) {
-    const attempt = attempts.current[booking.id] || {key: crypto.randomUUID(), outcome};
-    attempts.current[booking.id] = attempt;
-    const result = await api(`/bookings/${booking.id}/payments`, {method: 'POST', body: {outcome: attempt.outcome}, key: attempt.key});
+  async function pay(booking, outcome, method = 'card') {
+    const apiMethod = method === 'pay' ? 'wallet' : method;
+    // Ключ идемпотентности привязан к конкретной попытке (результат + способ).
+    // Если пользователь сменил способ или повторил после ошибки, нужен новый ключ,
+    // иначе сервер увидит тот же ключ с другим телом запроса и вернёт 409/422.
+    let attempt = attempts.current[booking.id];
+    if (!attempt || attempt.outcome !== outcome || attempt.method !== apiMethod) {
+      attempt = {key: crypto.randomUUID(), outcome, method: apiMethod};
+      attempts.current[booking.id] = attempt;
+    }
+    let result;
+    try {
+      result = await api(`/bookings/${booking.id}/payments`, {method: 'POST', body: {outcome: attempt.outcome, method: attempt.method}, key: attempt.key});
+    } catch (err) {
+      // Ключ сохраняем только при обрыве сети: повтор того же запроса безопасен.
+      if (!String(err.message).startsWith('Сервер недоступен')) delete attempts.current[booking.id];
+      throw err;
+    }
     delete attempts.current[booking.id];
     hideHistory(booking.id);
+    // Список платежей в профиле нужно перечитать при следующем открытии.
+    setMyPayments(null);
     if (result.payment.status === 'succeeded') {
       setNotice('Оплата прошла успешно! Бронь подтверждена.');
-      await load(page.offset);
-    } else {
-      await load(page.offset);
     }
+    await load(page.offset);
     return result;
   }
 
@@ -227,39 +285,39 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
   return <Container id={embedded ? undefined : "main"} className={`container dashboard ${view === 'profile' ? 'profile-dashboard' : ''}`}>
     {view === 'profile' ? <>
       <div className="profile-heading">
-        <div><span className="section-kicker">Ваш Qonaq аккаунт</span><h1 tabIndex={-1}>Профиль гостя</h1>
-          <p>Личные данные и всё необходимое для следующей поездки.</p></div>
-        <button type="button" className="secondary profile-bookings-link" onClick={onBookings}><Icon name="calendar"/>Мои бронирования<Icon name="right" size={17}/></button>
+        <div><span className="section-kicker">{translate('Ваш Qonaq аккаунт')}</span><h1 tabIndex={-1}>{translate('Профиль гостя')}</h1>
+          <p>{translate('Личные данные и всё необходимое для следующей поездки.')}</p></div>
+        <button type="button" className="secondary profile-bookings-link" onClick={onBookings}><Icon name="calendar"/>{translate('Мои бронирования')}<Icon name="right" size={17}/></button>
       </div>
       <Feedback error={error} notice={notice}/>
       <div className="profile-welcome">
         <div className="profile-avatar" aria-hidden="true">{user.full_name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toLocaleUpperCase('ru')).join('')}</div>
-        <div className="profile-welcome-copy"><span className="profile-eyebrow">Рады видеть вас снова</span><h2>{user.full_name}</h2>
-          <p>Гость Qonaq Hotel <span className="profile-member"><Icon name="check" size={14}/>Аккаунт активен</span></p></div>
+        <div className="profile-welcome-copy"><span className="profile-eyebrow">{translate('Рады видеть вас снова')}</span><h2>{user.full_name}</h2>
+          <p>{translate('Гость Qonaq Hotel')} <span className="profile-member"><Icon name="check" size={14}/>{translate('Аккаунт активен')}</span></p></div>
       </div>
       <div className="account-center">
         <aside className="panel profile-sidebar" aria-label="Настройки аккаунта">
-          <section className="profile-menu-group"><h2>Мои путешествия</h2>
+          <section className="profile-menu-group"><h2>{translate('Мои путешествия')}</h2>
             {profileRow('trips', 'Поездки и бронирования', 'briefcase')}
             {profileRow('favorites', 'Избранное', 'heart')}
             {profileRow('reviews', 'Мои отзывы', 'chat')}
           </section>
-          <section className="profile-menu-group"><h2>Управление аккаунтом</h2>
+          <section className="profile-menu-group"><h2>{translate('Управление аккаунтом')}</h2>
             {profileRow('personal', 'Личные данные', 'guests')}
             {profileRow('security', 'Настройки безопасности', 'lock')}
             {profileRow('travelers', 'Другие путешественники', 'people')}
           </section>
-          <section className="profile-menu-group"><h2>Настройки</h2>
+          <section className="profile-menu-group"><h2>{translate('Настройки')}</h2>
             {profileRow('preferences', 'Настройки отображения', 'sliders')}
             {profileRow('payments', 'Способы оплаты', 'card')}
             {profileRow('newsletter', 'Настройка получения рассылок', 'mail')}
           </section>
-          <section className="profile-menu-group"><h2>Юридические данные и конфиденциальность</h2>
+          <section className="profile-menu-group"><h2>{translate('Юридические данные и конфиденциальность')}</h2>
             {profileRow('privacy', 'Конфиденциальность и управление данными', 'shield')}
           </section>
         </aside>
         <section className="panel account-settings-content" aria-live="polite">
-          <h2>{profileTitles[profilePanel]}</h2><p className="account-settings-description">{profileDescriptions[profilePanel]}</p>
+          <h2>{translate(profileTitles[profilePanel])}</h2><p className="account-settings-description">{translate(profileDescriptions[profilePanel])}</p>
           <div className="profile-panel-content">{profilePanelContent(profilePanel)}</div>
         </section>
       </div>
@@ -298,8 +356,8 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
         setNotice('Пользователь обновлён.');
       })}/>)}
       {!busy && !error && !page.items.length && <div className="empty">
-        <h2>{view === 'bookings' ? 'Бронирований пока нет' : 'Пользователей пока нет'}</h2>
-        {view === 'bookings' && <a className="secondary" href="#rooms" onClick={goHome}>Выбрать номер</a>}
+        <h2>{translate(view === 'bookings' ? 'Бронирований пока нет' : 'Пользователей пока нет')}</h2>
+        {view === 'bookings' && <a className="secondary" href="#rooms" onClick={goHome}>{translate('Выбрать номер')}</a>}
       </div>}
       <Pagination page={page} pending={busy} onPage={offset => run(() => load(offset))}/>
     </div></>}
@@ -315,7 +373,7 @@ export function Dashboard({view, user, updateUser, created, goHome, onBookings, 
         booking={payingBooking}
         busy={busy}
         onClose={() => setPayingBooking(null)}
-        onPay={outcome => pay(payingBooking, outcome)}
+        onPay={(outcome, method) => pay(payingBooking, outcome, method)}
       />
     )}
   </Container>;
